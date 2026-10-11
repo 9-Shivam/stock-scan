@@ -1,0 +1,61 @@
+name: Daily stock scan
+
+# 11:30 UTC = 5:00 PM IST, Mon-Fri.
+# NSE 3:30 PM IST pe band hota hai; 1.5 ghante ka buffer isliye ki yfinance ka
+# data settle ho jaye. GitHub ka cron kabhi kabhi 10-20 min late chalta hai -
+# woh theek hai, market toh band hi hai.
+on:
+  schedule:
+    - cron: "30 11 * * 1-5"
+  workflow_dispatch:          # phone se bhi manually chala sakte ho
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install deps
+        run: pip install -r requirements.txt
+
+      - name: Run scan
+        run: python scan_phone.py
+
+      - name: Check page was built
+        run: |
+          test -s index.html || { echo "index.html missing or empty"; exit 1; }
+          ls -la index.html
+
+      - name: Stage site
+        run: |
+          mkdir -p _site
+          cp index.html _site/
+          cp scan_rule1.csv scan_rule2.csv _site/ 2>/dev/null || true
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: scan
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
