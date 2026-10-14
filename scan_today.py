@@ -37,6 +37,11 @@ PRICES = "ohlcv_nifty500_raw.csv.gz"     # UNADJUSTED - levels psychological hai
 MAX_AGE = 2                              # 2 weeks (weekly) / 2 days (daily)
 STEP, LEVEL_MAX, OFFSET = 50, 3000, 24.0
 MIN_BODY_FRAC = 0.10                     # circuit/doji candles hatao
+# Aaj ke price se target kam se kam itne % door ho. Jo rows +0.06% ya -0.02% pe
+# baithi hain woh trade hi nahi hain - brokerage aur spread usse zyada kha jaate
+# hain. Dhyan rahe yeh "abhi se target kitna door hai" hai, "Rs 24 level ka kitna
+# % hai" nahi (woh 2900 pe 0.83% aur 150 pe 16% hota hai).
+MIN_TARGET_PCT = 1.5
 BATCH = 40                               # yfinance ek baar me kitne symbols
 
 
@@ -114,9 +119,10 @@ def _rule1(px, today):
     d["to_tgt_pct"] = (d.target / d.today - 1) * 100
     d["signal_date"] = pd.to_datetime(d.end_week).dt.date
     d["age"] = d.weeks_ago.astype(int).astype(str) + "w"
-    # target pehle se hit = ab signal nahi
+    # target pehle se hit = ab signal nahi; aur bahut paas ho toh trade nahi banta
     d = d[((d.direction == "UP") & (d.today < d.target)) |
           ((d.direction == "DOWN") & (d.today > d.target))]
+    d = d[d.to_tgt_pct.abs() >= MIN_TARGET_PCT]
     return d[["symbol", "direction", "level", "target", "today",
               "to_tgt_pct", "signal_date", "age"]]
 
@@ -170,6 +176,7 @@ def _rule2(px, today):
     d["to_tgt_pct"] = (d.target / d.today - 1) * 100
     d = d[((d.direction == "UP") & (d.today < d.target)) |
           ((d.direction == "DOWN") & (d.today > d.target))]
+    d = d[d.to_tgt_pct.abs() >= MIN_TARGET_PCT]
     return d.sort_values("to_tgt_pct", key=abs)
 
 
