@@ -34,10 +34,11 @@ def detect_all(o, h, l, c, strict=True):
     strict=True (default) do extra sharten lagata hai jo kitaabi definition me hain
     par swing_screener ke purane code me nahi thi:
 
-    1. Three White Soldiers / Three Black Crows: har candle PICHLI candle ke body
-       ke ANDAR khulni chahiye. Bina iske gap-down/gap-up wali series bhi ginti thi -
-       70,502 soldiers me se 63,332 (90%) aise hi the, aur 123,220 crows me se
-       79,462 (64%).
+    1. Three White Soldiers / Three Black Crows: (a) har candle PICHLI candle ke
+       body ke ANDAR khulni chahiye - bina iske gap wali series bhi ginti thi
+       (70,502 soldiers me se 63,332 = 90%, aur 123,220 crows me se 79,462 = 64%);
+       (b) teeno candles "long" honi chahiye - body apni range ka kam se kam 50%.
+       NLCINDIA pe 0.60/0.60/1.30 ke body wale teen doji "soldiers" ban gaye the.
 
     2. Morning Star / Evening Star: pehli candle ek asli move honi chahiye
        (body >= range ka 50%), sirf body>0 nahi. TRENT pe "Morning Star" bani thi
@@ -79,6 +80,14 @@ def detect_all(o, h, l, c, strict=True):
     opens_inside = (inside1 & inside2) if strict else np.ones(n, bool)
     # star patterns ki pehli candle asli move honi chahiye, doji nahi
     long_first = (b2 >= 0.5 * shift(rng, 2)) if strict else (b2 > 0)
+    # Soldiers/Crows ki TEENO candles "long" honi chahiye - body apni range ka
+    # kam se kam 50%. Iske bina NLCINDIA jaisa case nikal aata tha: 0.60, 0.60
+    # aur 1.30 ke body (244 ke stock pe 0.25%) teen doji the, soldiers nahi -
+    # body range ka sirf 18-25% tha.
+    long_body = body >= 0.5 * np.maximum(rng, 1e-9)
+    all_three_long = (long_body & (shift(long_body.astype(float), 1) == 1)
+                      & (shift(long_body.astype(float), 2) == 1)) if strict \
+        else np.ones(n, bool)
 
     p = {}
     p["Bullish Engulfing"] = bear1 & bull & (o <= c1) & (c >= o1)
@@ -86,7 +95,7 @@ def detect_all(o, h, l, c, strict=True):
     p["Piercing Line"] = bear1 & bull & (o < l1 * 1.001) & (c > (o1 + c1) / 2) & (c < o1)
     p["Bullish Harami"] = bear1 & bull & (o > c1) & (c < o1) & (body < b1)
     p["Morning Star"] = bear2 & long_first & (b1 < 0.5 * b2) & bull & (c > (o2 + c2) / 2)
-    p["Three White Soldiers"] = bull2 & bull1 & bull & (c1 > c2) & (c > c1) & opens_inside
+    p["Three White Soldiers"] = bull2 & bull1 & bull & (c1 > c2) & (c > c1) & opens_inside & all_three_long
     p["Bullish Marubozu"] = (rng > 0) & bull & (body >= 0.9 * rng) & \
                             ((h - c) <= 0.05 * rng) & ((o - l) <= 0.05 * rng)
 
@@ -97,7 +106,7 @@ def detect_all(o, h, l, c, strict=True):
     p["Dark Cloud Cover"] = bull1 & bear & (o > h1 * 0.999) & (c < (o1 + c1) / 2) & (c > o1)
     p["Bearish Harami"] = bull1 & bear & (o < c1) & (c > o1) & (body < b1)
     p["Evening Star"] = bull2 & long_first & (b1 < 0.5 * b2) & bear & (c < (o2 + c2) / 2)
-    p["Three Black Crows"] = bear2 & bear1 & bear & (c1 < c2) & (c < c1) & opens_inside
+    p["Three Black Crows"] = bear2 & bear1 & bear & (c1 < c2) & (c < c1) & opens_inside & all_three_long
     p["Bearish Marubozu"] = (rng > 0) & bear & (body >= 0.9 * rng) & \
                             ((h - o) <= 0.05 * rng) & ((c - l) <= 0.05 * rng)
 
