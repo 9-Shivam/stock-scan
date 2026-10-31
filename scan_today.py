@@ -107,6 +107,24 @@ def refresh_prices(path=PRICES, overlap_days=5):
     return merged
 
 
+def drop_partial_today(px):
+    """
+    Aaj ki ADHURI daily candle hata do agar market abhi khula hai.
+
+    NSE 15:30 IST pe band hota hai. Usse pehle scan chalao toh aaj ki candle
+    adhuri hoti hai - close abhi tak final nahi hua, aur uspe bana pattern
+    3:30 tak badal sakta hai. Wahi dikkat jo weekly me thi (to_weekly ka
+    drop_incomplete dekho), bas daily par.
+    """
+    ist = pd.Timestamp.utcnow().tz_localize(None) + timedelta(hours=5, minutes=30)
+    last = px.date.max()
+    if last.date() == ist.date() and (ist.hour, ist.minute) < (15, 40):
+        print(f"  market abhi khula hai ({ist:%H:%M} IST) - aaj ki adhuri candle "
+              f"({last.date()}) hata rahe hain")
+        return px[px.date < last]
+    return px
+
+
 def _rule1(px, today):
     """Teen parallel weekly candles. 3rd candle ki closing date bhi."""
     cfg = dict(rl.CONFIG, recent_weeks=MAX_AGE)
@@ -200,6 +218,7 @@ def main():
         px.columns = [c.lower() for c in px.columns]
     else:
         px = refresh_prices()
+    px = drop_partial_today(px)
     last = px.date.max()
     today = px.sort_values("date").groupby("symbol")["close"].last()
     print(f"prices through {last.date()}   |   max signal age = {MAX_AGE}")

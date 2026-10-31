@@ -43,12 +43,34 @@ CONFIG = {
 }
 
 
-def to_weekly(df, rule="W-FRI"):
-    """Daily OHLCV -> weekly candles."""
+def to_weekly(df, rule="W-FRI", drop_incomplete=True, asof=None):
+    """
+    Daily OHLCV -> weekly candles.
+
+    drop_incomplete: abhi chal rahe hafte ki ADHURI candle hata do.
+
+    Zaruri kyun: resample har hafte ko uske Friday ka label deta hai, chahe us
+    hafte ke sirf 2 din hi aaye hon. Budhwar ko scan chalao toh Mon-Wed ki
+    adhuri candle "poori weekly candle" ban jaati thi aur uspe pattern bhi
+    ban jaata tha - jo Thursday/Friday trade hote hi gayab ho sakta hai.
+    Example: RELIANCE, Wed 07-Oct pe close 1207.70 dikhta tha, asli Friday
+    close 1170.30 nikla.
+
+    Hafta poora tab maana jaata hai jab:
+      - aaj ki date us Friday se aage nikal chuki ho, YA
+      - us Friday (ya uske baad) ka data humare paas aa chuka ho
+        (Friday chhutti ho toh last trading day hi aakhri hota hai)
+    """
     d = df.sort_values("date").set_index("date")
     w = d.resample(rule).agg(open=("open", "first"), high=("high", "max"),
                              low=("low", "min"), close=("close", "last"),
                              volume=("volume", "sum")).dropna(subset=["close"])
+    if drop_incomplete and len(w):
+        today = pd.Timestamp(asof) if asof is not None else pd.Timestamp.today()
+        last_data = d.index.max()
+        label = w.index[-1]
+        if not (today.normalize() > label.normalize() or last_data >= label):
+            w = w.iloc[:-1]
     return w
 
 

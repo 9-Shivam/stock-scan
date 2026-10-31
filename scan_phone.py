@@ -22,7 +22,7 @@ from datetime import date, timedelta
 import pandas as pd
 
 import make_gann_page as page
-from scan_today import _rule1, _rule2
+from scan_today import _rule1, _rule2, drop_partial_today
 
 MONTHS = 8
 BATCH = 40
@@ -77,6 +77,7 @@ def main():
     syms = sorted(pd.read_csv(UNIVERSE)["Symbol"].astype(str).str.strip().unique())
 
     px = fetch_recent(syms)
+    px = drop_partial_today(px)
     last = px.date.max()
     today = px.sort_values("date").groupby("symbol")["close"].last()
     print(f"\nprices through {last.date()}  |  {px.symbol.nunique()} symbols, "
