@@ -1,12 +1,21 @@
 name: Daily stock scan
 
-# 11:30 UTC = 5:00 PM IST, Mon-Fri.
-# NSE 3:30 PM IST pe band hota hai; 1.5 ghante ka buffer isliye ki yfinance ka
-# data settle ho jaye. GitHub ka cron kabhi kabhi 10-20 min late chalta hai -
-# woh theek hai, market toh band hi hai.
+# NSE 15:30 IST (10:00 UTC) pe band hota hai.
+#
+# DO baar chalate hain, ek nahi. Wajah: GitHub free-tier pe scheduled jobs
+# bahut late chalte hain - humne dekha 5 se 9 ghante tak:
+#     schedule 11:30 UTC  ->  asli run 17:03, 18:29, 20:49 UTC
+# Yaani 5 PM IST ka scan aadhi raat ko chal raha tha, aur shaam ko dekho toh
+# kal ka data dikhta tha. Do slots rakhne se kam se kam ek time pe lag jaata hai.
+#
+#   10:45 UTC = 16:15 IST  (close ke 45 min baad)
+#   14:15 UTC = 19:45 IST  (shaam wala, pehla late hua toh yeh bachata hai)
+#
+# Jaldi chahiye toh Actions tab se "Run workflow" - 90 second me ho jaata hai.
 on:
   schedule:
-    - cron: "30 11 * * 1-5"
+    - cron: "45 10 * * 1-5"
+    - cron: "15 14 * * 1-5"
   workflow_dispatch:          # phone se bhi manually chala sakte ho
 
 permissions:

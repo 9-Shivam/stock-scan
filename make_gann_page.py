@@ -107,6 +107,10 @@ td.n{text-align:right}
 .dates{font-size:10.5px;color:var(--tx3);line-height:1.5}
 .dates b{color:var(--tx2)}
 .a0{color:var(--up);font-weight:700}.a2{color:var(--dn)}
+.tf{display:inline-block;font-size:8.5px;font-weight:700;letter-spacing:.04em;padding:1px 4px;
+  border-radius:3px;text-transform:uppercase;margin-right:3px;vertical-align:1px}
+.tfdaily{background:var(--tx);color:var(--bg)}
+.tfweekly{background:transparent;color:var(--tx3);border:1px solid var(--bd)}
 .card{border:1px solid var(--bd);border-radius:9px;padding:11px;margin-bottom:8px;background:var(--bg)}
 .crow{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
 .cnum{font-size:12.5px;color:var(--tx2);margin-top:5px;font-variant-numeric:tabular-nums}
@@ -118,9 +122,12 @@ td.n{text-align:right}
 
 <h1>Gann Psychological Numbers</h1>
 <div class="sub">__SUB__</div>
-<div class="warn"><b>Scanner only — no tested edge.</b> Rule 1 UP backtested at &minus;0.9%;
-Rule 2 was flat on weekly and a volatility effect (not directional) on daily. Targets are
-&#8377;24 fixed, so they mean ~16% at level 150 and ~0.8% at level 2900.</div>
+<div class="warn"><b>Scanner only — not a tested edge.</b> Backtest on 33,518 trades:
+win rate 57.5% but <b>net &minus;0.21% per trade, losing in all 11 years</b> — wins average
++2.1% while losses average &minus;3.3%, because the &#8377;24 target caps the upside while
+the stop sits a whole candle away (median reward:risk 0.52). The DOWN side does predict
+direction (+1.83% vs +0.33% on the opposite-target check), but that has never converted
+into money. &#8377;24 is ~16% at level 150 and ~0.8% at level 2900.</div>
 
 <div class="ctl">
   <div class="seg" id="bucket">
@@ -130,6 +137,12 @@ Rule 2 was flat on weekly and a volatility effect (not directional) on daily. Ta
   <div class="seg" id="dir">
     <button data-v="ALL" class="on">Both</button><button data-v="UP">Up</button>
     <button data-v="DOWN">Down</button>
+  </div>
+</div>
+<div class="ctl">
+  <div class="seg" id="tf">
+    <button data-v="ALL" class="on">Any TF</button><button data-v="daily">Daily</button>
+    <button data-v="weekly">Weekly</button>
   </div>
 </div>
 <div class="ctl">
@@ -147,11 +160,12 @@ Rule 2 was flat on weekly and a volatility effect (not directional) on daily. Ta
 
 <script>
 const DATA=__DATA__, FAR=__FAR__;
-let st={bucket:'ALL',dir:'ALL',fresh:false,near:true,sort:'p',asc:true};
+let st={bucket:'ALL',dir:'ALL',tf:'ALL',fresh:false,near:true,sort:'p',asc:true};
 const ageCls=a=>{if(!a)return'';const n=parseInt(a);return n===0?'a0':(n>=2?'a2':'')};
 const fresh=r=>(r.r1a&&parseInt(r.r1a)===0)||(r.r2||[]).some(x=>parseInt(x.a)===0);
 function rows(){
   let d=DATA.filter(r=>(st.bucket==='ALL'||r.b===st.bucket)&&(st.dir==='ALL'||r.dir===st.dir)
+    &&(st.tf==='ALL'||(r.r2||[]).some(x=>x.tf===st.tf))
     &&(!st.fresh||fresh(r))&&(!st.near||Math.abs(r.p)<=FAR));
   const k=st.sort;
   d.sort((a,b)=>{let x=a[k],y=b[k];if(k==='p'){x=Math.abs(x);y=Math.abs(y)}
@@ -162,7 +176,7 @@ function rows(){
 function dateLines(r){
   let s='';
   if(r.r1d)s+='<div><b>R1</b> 3 candles @'+r.l+' &middot; '+r.r1d+' <span class="'+ageCls(r.r1a)+'">('+r.r1a+')</span></div>';
-  (r.r2||[]).forEach(x=>{s+='<div><b>R2</b> '+x.p+' ['+x.tf+'] @'+x.l+' &middot; '+x.d+' <span class="'+ageCls(x.a)+'">('+x.a+')</span></div>'});
+  (r.r2||[]).forEach(x=>{s+='<div><span class="tf tf'+x.tf+'">'+x.tf+'</span> '+x.p+' @'+x.l+' &middot; '+x.d+' <span class="'+ageCls(x.a)+'">('+x.a+')</span></div>'});
   return s;
 }
 function render(){

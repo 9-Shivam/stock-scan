@@ -17,7 +17,7 @@ Output: index.html  (GitHub Pages isi naam ko dhoondhta hai)
 
 import os
 import sys
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 import pandas as pd
 
@@ -91,10 +91,15 @@ def main():
 
     # HTML banao - make_gann_page ka hi template, par date yahin se
     recs = page.build_records()
+    # Scan kab chala yeh dikhana zaruri hai: GitHub ka cron 5-9 ghante late
+    # chal sakta hai, toh "prices through" ke saath yeh bhi chahiye warna pata
+    # nahi chalta ki page purana hai ya market hi band tha.
+    ist = datetime.utcnow() + timedelta(hours=5, minutes=30)
     html = (page.TEMPLATE
             .replace("__DATA__", page.json.dumps(recs, separators=(",", ":")))
             .replace("__SUB__", f"Nifty 500 &middot; prices through {last.date()} "
-                                f"&middot; {len(recs)} signals")
+                                f"&middot; {len(recs)} signals &middot; "
+                                f"scan ran {ist:%d-%b %H:%M} IST")
             .replace("__FAR__", str(page.MAX_FAR_PCT)))
     with open(OUT_HTML, "w", encoding="utf-8") as f:
         f.write(html)
